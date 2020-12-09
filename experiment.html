@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <title>Mon expérience</title>
+
+        <!-- Pour éviter les erreurs d'encodage  -->
+    	<meta charset="UTF-8">
+
+        <!-- Imports de base jsPsych  -->
+        <script src="jspsych-6/jspsych.js"></script>
+        <link href="jspsych-6/css/jspsych.css" rel="stylesheet" type="text/css">
+
+        <!-- Script pour ajouter le plugin 'html-keyboard-response' -->
+        <script src="jspsych-6/plugins/jspsych-html-keyboard-response.js"></script>
+
+        <!-- Script pour ajouter le plugin 'image-keyboard-response' -->
+        <script src="jspsych-6/plugins/jspsych-image-keyboard-response.js"></script>
+    </head>
+
+    <body>
+    </body>
+
+    <!-- Script de l'expérience -->
+    <script>
+    	// On crée la timeline (tableau qui contient toutes les tests qu'on veut exécuter pendant l'expérience)
+    	var timeline = [];
+
+
+
+
+
+    	// On crée le test 'welcome', qui attend une réponse du clavier
+    	var welcome = {
+  			type: "html-keyboard-response",
+  			stimulus: "Bienvenue dans l'expérience. Pressez n'importe quelle touche pour commencer."
+		};
+
+		// On 'push' le test dans la timeline pour qu'il s'exécute à l'initialisation de l'expérience
+		timeline.push(welcome);
+
+
+
+
+
+		// On montre les instructions
+		var instructions = {
+  			type: "html-keyboard-response",
+  			stimulus: "<p>Dans cette expérience, un cercle va apparaître au milieu " +
+      			"de l'écran.</p><p>Si le cercle est <strong>bleu</strong>, " +
+      			"pressez la touche F aussi vite que possible.</p>" +
+      			"<p>Si le cercle est <strong>orange</strong>, pressez la lettre J " +
+      			"aussi vite que possible.</p>" +
+      			"<div style='width: 700px;'>"+
+      			"<div style='float: left;'><img src='img/blue.png'></img>" +
+      			"<p class='small'><strong>Pressez la touche F</strong></p></div>" +
+      			"<div class='float: right;'><img src='img/orange.png'></img>" +
+      			"<p class='small'><strong>Pressez la touche J</strong></p></div>" +
+      			"</div>"+
+      			"<p>Pressez n'importe quelle touche pour commencer.</p>",
+      		post_trial_gap: 2000
+		};
+
+		timeline.push(instructions);
+
+
+
+
+
+		// ## LISTE DES TESTS A EXECUTER ##
+		var test_stimuli = [
+  			{ stimulus: "img/blue.png", data: {test_part: 'test', correct_response: 'f'}}, // On choisit ici également le résultat correct du test (dans ce cas, c'est la touche F)
+  			{ stimulus: "img/orange.png", data: {test_part: 'test', correct_response: 'j'}}
+		];
+
+
+
+
+
+		// Test entre 2 ronds (rien à l'écran)
+		var blank = {
+  			type: 'html-keyboard-response',
+  			stimulus: '', // On peut mettre '<div style="font-size:60px;">+</div>' pour ajouter un marqueur au centre de l'écran
+  			choices: jsPsych.NO_KEYS,
+
+  			// Durée de l'écran blanc
+  			trial_duration: function(){
+    			return jsPsych.randomization.sampleWithoutReplacement([250, 500, 750, 1000, 1250, 1500, 1750, 2000], 1)[0];
+  			},
+  			// On marque chaque page blanche comme "blank" dans les données de sortie
+  			data: {test_part: 'blank'}
+		}
+
+
+
+
+
+		// Exécution du test à partir de la liste des tests (var test_stimuli)
+		var test = {
+  			type: "image-keyboard-response",
+  			stimulus: jsPsych.timelineVariable('stimulus'),
+  			choices: ['f', 'j'],
+  			data: jsPsych.timelineVariable('data'), // On lie les résultats corrects (var test_stimuli) avec l'expérience
+
+  			// Quand l'expérience est finie
+  			on_finish: function(data){
+    			data.correct = data.key_press == jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.correct_response); //Ajoute la propriété "correct" au test, qui peut être lue plus tard dans les données de sortie de l'expérience
+  			}
+		}
+
+
+
+
+
+		var test_procedure = {
+			// PMain timeline avec les phases écran blanc/écran avec cercle de couleur
+  			timeline: [blank, test],
+
+  			// On déclare test_stimuli comme une variable de la timeline (et on la paramètre)
+  			timeline_variables: test_stimuli,
+  			randomize_order: true,
+  			repetitions: 5
+		}
+
+		// On push la procédure de test dans la main timeline
+		timeline.push(test_procedure);
+
+
+
+
+
+		// Test qui montre les données directement à l'utilisateur en fin d'expérience
+		var debrief_block = {
+  			type: "html-keyboard-response",
+  			stimulus: function() {
+
+    		var trials = jsPsych.data.get().filter({test_part: 'test'});
+    		var correct_trials = trials.filter({correct: true});
+    		var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+    		var rt = Math.round(correct_trials.select('rt').mean());
+
+    		return "<p>Vous avez répondu correctement à "+accuracy+"% des tests.</p>"+
+    		"<p>Votre temps de réponse moyen était "+rt+"ms.</p>"+
+    		"<p>Pressez n'importe quelle touche pour finir l'expérience.</p>";
+
+  			}
+		};
+
+		timeline.push(debrief_block);
+
+
+
+
+
+		// On démarre l'expérience
+    	jsPsych.init({
+        	timeline: timeline,
+
+        	// Afficher les données de l'expérience
+        	on_finish: function() {
+    			jsPsych.data.displayData();
+  			}
+    	})
+    </script>
+</html>
